@@ -1,17 +1,14 @@
-import React, {useState, useEffect} from 'react';
+import React, { useEffect, useState } from 'react';
+import './App.css';
+import NavBar from './components/navbar/';
 
 function App() {
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    fetch('/api')  // Replace this with the API endpoint you created
-      .then(response => response.text())
-      .then(data => setMessage(data));
-  }, []);
 
   return (
     <div className="App">
-      <h1>{message}</h1>
+      <NavBar />
+      <div className="content">
+      </div>
     </div>
   );
 }
