@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../App.css';
+import './navbar.css';
 
 const NavBar = () => {
   return (
@@ -13,11 +13,11 @@ const NavBar = () => {
           <li><a href="/scan">Scan</a></li>
           <li><a href="/login">Login</a></li>
           <li>
-            <div class="dropdown">
-              <button class="dropbtn">Tools
-                <i class="fa fa-caret-down"></i>
+            <div className="dropdown">
+              <button className="dropbtn">Tools
+                <i className="fa fa-caret-down"></i>
               </button>
-              <div class="dropdown-content">
+              <div className="dropdown-content">
                 <a href="/nmap">nmap</a>
                 <a href="/snort">snort</a>
               </div>
@@ -25,9 +25,6 @@ const NavBar = () => {
           </li>
         </ul>
       </nav>
-      <main className="main-content">
-        <h1>Welcome to PortScan-Edu!</h1>
-      </main>
     </div>
   );
 }

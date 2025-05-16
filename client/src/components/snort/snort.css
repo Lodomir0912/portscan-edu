@@ -1,0 +1,25 @@
+.snort-container {
+  min-height: 75.5vh;
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.snort-logo {
+  max-width: 200px;
+  margin: 0 auto 60px;
+  display: block;
+}
+
+.snort-content {
+  max-width: 800px;
+  margin: 0 auto;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.snort-content h1 {
+  margin-bottom: 20px;
+  font-size: 32px;
+}

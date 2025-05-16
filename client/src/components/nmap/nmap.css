@@ -1,0 +1,25 @@
+.nmap-container {
+  min-height: 75.5vh;
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.nmap-logo {
+  max-width: 150px;
+  margin: 0 auto 30px;
+  display: block;
+}
+
+.nmap-content {
+  max-width: 800px;
+  margin: 0 auto;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.nmap-content h1 {
+  margin-bottom: 20px;
+  font-size: 32px;
+}

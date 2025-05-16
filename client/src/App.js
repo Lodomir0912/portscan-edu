@@ -1,16 +1,40 @@
 import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import NavBar from './components/navbar/';
+import './components/navbar/navbar.css';
+import Login from './components/login/';
+import './components/login/login.css';
+import Register from './components/register/';
+import './components/register/register.css';
+import Nmap from './components/nmap/';
+import './components/nmap/nmap.css';
+import Snort from './components/snort/';
+import './components/snort/snort.css';
 
 function App() {
-
   return (
-    <div className="App">
+    <Router>
       <NavBar />
-      <div className="content">
-      </div>
-    </div>
+      <Routes>
+        <Route path="/" element={
+          <div className="main-container">
+            <div className="main">
+              <h1>Welcome to Port-Scan Edu!</h1>
+              <button className="startscan">
+                <i>Start Scanning!</i>
+              </button>
+            </div>
+          </div>
+        } />
+        <Route path="/login" element={<Login />} />
+        <Route path='/register' element={<Register />} />
+        <Route path="/nmap" element={<Nmap />} />
+        <Route path="/snort" element={<Snort />} />
+      </Routes>
+    </Router>
   );
 }
+
 
 export default App;
