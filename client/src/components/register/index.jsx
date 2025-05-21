@@ -30,8 +30,8 @@ function Register() {
   }
 
   return (
-    <div className="register-container">
-      <div className="register-card">
+    <div className="register-wrapper">
+      <div className="register-container">
         <form onSubmit={handleRegister}>
           <h2>Create an account</h2>
           <p className="subtitle">Let's get started!</p>

@@ -7,19 +7,21 @@
 }
 
 .nmap-logo {
-  max-width: 150px;
   margin: 0 auto 30px;
   display: block;
+  max-width: 100%;
+  width: 15rem;
+  height: auto;
 }
 
 .nmap-content {
   max-width: 800px;
   margin: 0 auto;
-  font-size: 18px;
+  font-size: 1.5rem;
   line-height: 1.6;
 }
 
 .nmap-content h1 {
   margin-bottom: 20px;
-  font-size: 32px;
+  font-size: 4rem;
 }
