@@ -1,34 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
+import Main from './components/main/';
 import NavBar from './components/navbar/';
 import './components/navbar/navbar.css';
 import Login from './components/login/';
 import './components/login/login.css';
 import Register from './components/register/';
 import './components/register/register.css';
+import Scan from './components/scan/';
+import './components/scan/scan.css';
 import Nmap from './components/nmap/';
 import './components/nmap/nmap.css';
 import Snort from './components/snort/';
 import './components/snort/snort.css';
 
 function App() {
+
   return (
     <Router>
       <NavBar />
       <Routes>
-        <Route path="/" element={
-          <div className="main-container">
-            <div className="main">
-              <h1>Welcome to Port-Scan Edu!</h1>
-              <button className="startscan">
-                <i>Start Scanning!</i>
-              </button>
-            </div>
-          </div>
-        } />
+        <Route path="/" element={<Main />} />
         <Route path="/login" element={<Login />} />
         <Route path='/register' element={<Register />} />
+        <Route path='/scan' element={<Scan />} />
         <Route path="/nmap" element={<Nmap />} />
         <Route path="/snort" element={<Snort />} />
       </Routes>
