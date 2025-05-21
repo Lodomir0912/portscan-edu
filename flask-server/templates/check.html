@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sprawdzenie Nmap + Snort</title>
+</head>
+<body>
+    <h1>🛠 Sprawdzenie działania Nmap i Snort</h1>
+
+    <!-- === Nmap: 3 tryby skanowania === -->
+    <form method="POST">
+        <h2>🔍 Nmap: wybierz opcję skanowania</h2>
+
+        <p><button type="submit" name="action" value="nmap_scan_1">Opcja 1: nmap -sT -p-1000 -O</button></p>
+        <p><button type="submit" name="action" value="nmap_scan_2">Opcja 2: nmap -sS -p-1000 -O</button></p>
+        <p><button type="submit" name="action" value="nmap_scan_3">Opcja 3: nmap -sU -p-1000 -O</button></p>
+    </form>
+
+    {% if nmap_result %}
+        <h3>📊 Wyniki Nmap:</h3>
+        {% if nmap_result.error %}
+            <p style="color: red;">Błąd: {{ nmap_result.error }}</p>
+        {% else %}
+            <p><strong>Cel:</strong> {{ nmap_result.target }}</p>
+            <p><strong>System operacyjny:</strong> {{ nmap_result.os or 'Nie rozpoznano' }}</p>
+            <ul>
+                {% for port in nmap_result.ports %}
+                    <li>{{ port }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+
+    <hr>
+
+    <!-- === Snort: uruchomienie + podgląd === -->
+    <form method="POST">
+        <h2>🛡 Snort: uruchom i sprawdź alarmy</h2>
+        <button type="submit" name="action" value="snort_start">Uruchom Snort i przeprowadź test</button>
+    </form>
+
+    {% if snort_result %}
+        <h3>🚨 Wyniki Snort:</h3>
+        <ul>
+            {% for line in snort_result %}
+                <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
