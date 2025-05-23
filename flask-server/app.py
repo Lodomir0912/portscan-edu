@@ -4,8 +4,11 @@ import xml.etree.ElementTree as ET
 import os
 import time
 
-app = Flask(__name__)
+from models import db, User, ScanFile
 
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db.init_app(app)
 
 def load_config_attacker():
     with open(os.path.join(os.path.dirname(__file__), "config.txt")) as f:
@@ -18,7 +21,7 @@ def load_config_snort():
         return {"ip": lines[0], "user": lines[1], "password": lines[2]}
 
 
-def parse_nmap_xml(xml_output):
+def parse_nmap_xml(xml_output): # plik xml z nmap
     root = ET.fromstring(xml_output)
     result = {"target": None, "ports": [], "os": None}
     host = root.find('host')
@@ -45,7 +48,7 @@ def parse_nmap_xml(xml_output):
     return result
 
 
-def filter_snort_log(log_text: str) -> list[str]:
+def filter_snort_log(log_text: str) -> list[str]: # plik snort z logami
     useful_keywords = [
         "Packet Statistics",
         "Module Statistics",
@@ -97,6 +100,20 @@ def check():
                 xml_output = stdout.read().decode()
                 ssh.close()
                 nmap_result = parse_nmap_xml(xml_output)
+
+
+                filename = f"nmap_{int(time.time())}.xml"
+                scans_dir = os.path.join(os.path.dirname(__file__), "scans")
+                os.makedirs(scans_dir, exist_ok=True)
+                filepath = os.path.join(scans_dir, filename)
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(xml_output)
+                
+                # Do testów losowy użytkownik
+                user_id = 1
+                scanfile = ScanFile(user_id=user_id, filename=filename, filetype="nmap", hashtag="#nmapscan")
+                db.session.add(scanfile)
+                db.session.commit()
             except Exception as e:
                 nmap_result = {"error": str(e)}
 
@@ -128,6 +145,20 @@ def check():
                 sftp = ssh_snort.open_sftp()
                 with sftp.open(log_path, 'r') as log_file:
                     raw_log = log_file.read().decode()
+
+                # Zapis logu do pliku
+                log_filename = f"snort_{int(time.time())}.log"
+                logs_dir = os.path.join(os.path.dirname(__file__), "scans")
+                os.makedirs(logs_dir, exist_ok=True)
+                log_filepath = os.path.join(logs_dir, log_filename)
+                with open(log_filepath, "w", encoding="utf-8") as f:
+                    f.write(raw_log)
+
+                # Do testów, potem pobieraj z sesji
+                user_id = 1  
+                scanfile = ScanFile(user_id=user_id, filename=log_filename, filetype="snort", hashtag="#snortlog")
+                db.session.add(scanfile)
+                db.session.commit()
                 sftp.remove(log_path)
                 sftp.close()
                 ssh_snort.close()
@@ -140,3 +171,10 @@ def check():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+# Wszystkie pliki nmap użytkownika
+# nmap_files = ScanFile.query.filter_by(user_id=user_id, filetype="nmap").all()
+
+# Wszystkie logi snort użytkownika
+# snort_logs = ScanFile.query.filter_by(user_id=user_id, filetype="snort").all()
