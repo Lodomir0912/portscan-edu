@@ -6,10 +6,24 @@ services:
     container_name: flask-backend
     expose:
       - "5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./flask-server:/app
+    depends_on:
+      - linux_machine_1
+      - linux_machine_2
+    networks:
+      - linux_net
+    environment:
+      - FLASK_ENV=development
 
   react-frontend:
     build: ./client
     container_name: react-frontend
+    depends_on:
+      - flask-backend
+    networks:
+      - linux_net
 
   nginx:
     build: ./nginx
@@ -19,3 +33,34 @@ services:
     depends_on:
       - flask-backend
       - react-frontend
+    networks:
+      - linux_net
+
+  linux_machine_1:
+    build: ./kali
+    container_name: linux_machine_1
+    stdin_open: true
+    tty: true
+    privileged: true
+    command: sleep infinity
+    networks:
+      linux_net:
+        ipv4_address: 172.19.0.3
+
+  linux_machine_2:
+    build: ./kali
+    container_name: linux_machine_2
+    stdin_open: true
+    tty: true
+    privileged: true
+    command: sleep infinity
+    networks:
+      linux_net:
+        ipv4_address: 172.19.0.2
+
+networks:
+  linux_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16

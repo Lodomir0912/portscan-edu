@@ -5,3 +5,4 @@ flask-jwt-extended
 paramiko
 requests
 gunicorn
+xmltodict
