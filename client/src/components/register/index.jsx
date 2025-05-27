@@ -14,7 +14,7 @@ function Register() {
     try {
       const requestBody = { email, password };
 
-      await axios.post("http://localhost:5000/register", requestBody)
+      await axios.post("api/register", requestBody)
 
       Swal.fire({
         icon: "success",

@@ -1,42 +1,42 @@
 import React from 'react';
 import './navbar.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const NavBar = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('access_token');
+
   const handleLogout = () => {
     localStorage.removeItem("access_token");
-    navigate("/")
+    navigate("/");
     window.location.reload();
   };
-  var site = "";
-  var logout = "";
-    if (token) {
-      site = <a href="/account">Account</a>
-      logout = <li><button onClick={handleLogout}>Log Out</button></li>
-    } else {
-      site = <a href="/login">Login</a>
-    }
+
   return (
     <div className="container">
       <nav className="navbar">
         <div className="logo">
-          <a href="/" className="logo-link">PortScan-Edu</a>
+          <Link to="/" className="logo-link">PortScan-Edu</Link>
         </div>
         <ul className="nav-links">
-          <li><a href="/">Main Page</a></li>
-          <li><a href="/scan">Scan</a></li>
-          <li>{site}</li>
-          {logout}
+          <li><Link to="/">Main Page</Link></li>
+          <li><Link to="/scan">Scan</Link></li>
+          {token ? (
+            <>
+              <li><Link to="/account">Account</Link></li>
+              <li><button onClick={handleLogout}>Log Out</button></li>
+            </>
+          ) : (
+            <li><Link to="/login">Login</Link></li>
+          )}
           <li>
             <div className="dropdown">
               <button className="dropbtn">Tools
                 <i className="fa fa-caret-down"></i>
               </button>
               <div className="dropdown-content">
-                <a href="/nmap">nmap</a>
-                <a href="/snort">snort</a>
+                <Link to="/nmap">nmap</Link>
+                <Link to="/snort">snort</Link>
               </div>
             </div>
           </li>

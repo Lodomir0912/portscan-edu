@@ -17,7 +17,7 @@ db.init_app(app)
 jwt = JWTManager(app)
 
 # ---------------- LOGIN ENDPOINT ----------------
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     email = data.get('email')
@@ -29,7 +29,7 @@ def login():
     return jsonify(message='Invalid credentials'), 401
 
 # ---------------- REGISTER ENDPOINT ----------------
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
     email = data.get('email')
@@ -94,12 +94,12 @@ def filter_snort_log(log_text: str) -> list[str]:
     return [line.strip() for line in log_text.splitlines() if any(k in line for k in useful_keywords)]
 
 # ---------------- ROOT REDIRECT ----------------
-@app.route('/')
+@app.route('/api')
 def index():
     return "Backend is running!"
 
 # ---------------- SCAN ENDPOINT (z JWT) ----------------
-@app.route('/check', methods=['GET', 'POST'])
+@app.route('/api/check', methods=['GET', 'POST'])
 @jwt_required()
 def check():
     nmap_result = None
@@ -188,16 +188,8 @@ def check():
                 snort_result = [f"Błąd połączenia: {e}"]
 
     return render_template("check.html", nmap_result=nmap_result, snort_result=snort_result)
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_react(path):
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
     
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,23 +1,21 @@
-version: "3.9"
+version: '3.8'
+
 services:
-  flask-server:
+  flask-backend:
     build: ./flask-server
-    restart: always
-    volumes:
-      - ./data:/app/data
-    networks:
-      - backend
+    container_name: flask-backend
+    expose:
+      - "5000"
+
+  react-frontend:
+    build: ./client
+    container_name: react-frontend
 
   nginx:
-    build: ./client
+    build: ./nginx
+    container_name: nginx
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
-      - flask-server
-    networks:
-      - frontend
-      - backend
-
-networks:
-  frontend:
-  backend:
+      - flask-backend
+      - react-frontend
