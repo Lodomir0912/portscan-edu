@@ -12,8 +12,10 @@ function Register() {
   async function handleRegister(e) {
     e.preventDefault()
     try {
-      const requestBody = { email, password }
-      await axios.post("https://api.p2.lc2s5.foxhub.space/register", requestBody)
+      const requestBody = { email, password };
+
+      await axios.post("http://localhost:5000/register", requestBody)
+
       Swal.fire({
         icon: "success",
         title: "Account created",

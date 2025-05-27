@@ -1,7 +1,23 @@
 import React from 'react';
 import './navbar.css';
+import { useNavigate } from 'react-router-dom';
 
 const NavBar = () => {
+  const navigate = useNavigate();
+  const token = localStorage.getItem('access_token');
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/")
+    window.location.reload();
+  };
+  var site = "";
+  var logout = "";
+    if (token) {
+      site = <a href="/account">Account</a>
+      logout = <li><button onClick={handleLogout}>Log Out</button></li>
+    } else {
+      site = <a href="/login">Login</a>
+    }
   return (
     <div className="container">
       <nav className="navbar">
@@ -11,7 +27,8 @@ const NavBar = () => {
         <ul className="nav-links">
           <li><a href="/">Main Page</a></li>
           <li><a href="/scan">Scan</a></li>
-          <li><a href="/login">Login</a></li>
+          <li>{site}</li>
+          {logout}
           <li>
             <div className="dropdown">
               <button className="dropbtn">Tools

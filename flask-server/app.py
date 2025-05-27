@@ -1,15 +1,53 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import paramiko
 import xml.etree.ElementTree as ET
 import os
 import time
-
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_cors import CORS
 from models import db, User, ScanFile
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-db.init_app(app)
+app.config['JWT_SECRET_KEY'] = 'super-secret'  # Zmień na bezpieczny klucz w produkcji
+CORS(app)
 
+db.init_app(app)
+jwt = JWTManager(app)
+
+# ---------------- LOGIN ENDPOINT ----------------
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    user = User.query.filter_by(username=email).first()
+    if user and user.password == password:
+        token = create_access_token(identity=user.id)
+        return jsonify(access_token=token), 200
+    return jsonify(message='Invalid credentials'), 401
+
+# ---------------- REGISTER ENDPOINT ----------------
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify(message='Email and password are required'), 400
+
+    if User.query.filter_by(username=email).first():
+        return jsonify(message='User already exists'), 400
+
+    new_user = User(username=email, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify(message='User registered successfully'), 201
+
+# ---------------- CONFIG LOADING ----------------
 def load_config_attacker():
     with open(os.path.join(os.path.dirname(__file__), "config.txt")) as f:
         lines = f.read().splitlines()
@@ -20,8 +58,8 @@ def load_config_snort():
         lines = f.read().splitlines()
         return {"ip": lines[0], "user": lines[1], "password": lines[2]}
 
-
-def parse_nmap_xml(xml_output): # plik xml z nmap
+# ---------------- UTILS ----------------
+def parse_nmap_xml(xml_output):
     root = ET.fromstring(xml_output)
     result = {"target": None, "ports": [], "os": None}
     host = root.find('host')
@@ -47,38 +85,26 @@ def parse_nmap_xml(xml_output): # plik xml z nmap
             result['os'] = osmatch.attrib['name']
     return result
 
-
-def filter_snort_log(log_text: str) -> list[str]: # plik snort z logami
+def filter_snort_log(log_text: str) -> list[str]:
     useful_keywords = [
-        "Packet Statistics",
-        "Module Statistics",
-        "port_scan",
-        "packets:",
-        "trackers:",
-        "flows:",
-        "sessions:",
-        "detected apps",
-        "Application:",
-        "tcp",
-        "bad_tcp",
-        "runtime:",
-        "signals:",
-        "Commencing packet processing",
-        "++ [",
-        "** caught term signal",
-        "-- ["
+        "Packet Statistics", "Module Statistics", "port_scan", "packets:", "trackers:",
+        "flows:", "sessions:", "detected apps", "Application:", "tcp", "bad_tcp",
+        "runtime:", "signals:", "Commencing packet processing", "++ [", "** caught term signal", "-- ["
     ]
     return [line.strip() for line in log_text.splitlines() if any(k in line for k in useful_keywords)]
 
-
+# ---------------- ROOT REDIRECT ----------------
 @app.route('/')
-def root():
-    return "Redirecting to /check...", 302, {"Location": "/check"}
+def index():
+    return "Backend is running!"
 
+# ---------------- SCAN ENDPOINT (z JWT) ----------------
 @app.route('/check', methods=['GET', 'POST'])
+@jwt_required()
 def check():
     nmap_result = None
     snort_result = None
+    user_id = get_jwt_identity()  # Pobiera ID użytkownika z tokenu
 
     if request.method == 'POST':
         action = request.form['action']
@@ -101,16 +127,13 @@ def check():
                 ssh.close()
                 nmap_result = parse_nmap_xml(xml_output)
 
-
                 filename = f"nmap_{int(time.time())}.xml"
                 scans_dir = os.path.join(os.path.dirname(__file__), "scans")
                 os.makedirs(scans_dir, exist_ok=True)
                 filepath = os.path.join(scans_dir, filename)
                 with open(filepath, "w", encoding="utf-8") as f:
                     f.write(xml_output)
-                
-                # Do testów losowy użytkownik
-                user_id = 1
+
                 scanfile = ScanFile(user_id=user_id, filename=filename, filetype="nmap", hashtag="#nmapscan")
                 db.session.add(scanfile)
                 db.session.commit()
@@ -146,7 +169,6 @@ def check():
                 with sftp.open(log_path, 'r') as log_file:
                     raw_log = log_file.read().decode()
 
-                # Zapis logu do pliku
                 log_filename = f"snort_{int(time.time())}.log"
                 logs_dir = os.path.join(os.path.dirname(__file__), "scans")
                 os.makedirs(logs_dir, exist_ok=True)
@@ -154,8 +176,6 @@ def check():
                 with open(log_filepath, "w", encoding="utf-8") as f:
                     f.write(raw_log)
 
-                # Do testów, potem pobieraj z sesji
-                user_id = 1  
                 scanfile = ScanFile(user_id=user_id, filename=log_filename, filetype="snort", hashtag="#snortlog")
                 db.session.add(scanfile)
                 db.session.commit()
@@ -169,12 +189,15 @@ def check():
 
     return render_template("check.html", nmap_result=nmap_result, snort_result=snort_result)
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+    
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
-
-
-# Wszystkie pliki nmap użytkownika
-# nmap_files = ScanFile.query.filter_by(user_id=user_id, filetype="nmap").all()
-
-# Wszystkie logi snort użytkownika
-# snort_logs = ScanFile.query.filter_by(user_id=user_id, filetype="snort").all()
