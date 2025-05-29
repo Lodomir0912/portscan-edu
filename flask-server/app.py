@@ -98,8 +98,10 @@ def set_services():
             service_name = service_map.get(name)
             if not service_name:
                 return jsonify(message=f"Unknown service: {name}"), 400
-
-            cmd = f"service {service_name} {'start' if enabled else 'stop'} || true"
+            if enabled:
+                cmd = f"service {service_name} start"
+            else:
+                cmd = f"pkill -f {service_name}"
             out = run_docker_command_defender(cmd)
             if out.startswith("ERROR"):
                 return jsonify(message=f"Error updating service {service_name}: {out}"), 500
@@ -139,7 +141,7 @@ def run_nmap():
     }
     nmap_flag = scan_type_map[action]
 
-    target_ip = "172.19.0.2"  # IP celu skanu w kontenerze lub sieci Docker
+    target_ip = "172.19.0.2"
     os_detection = request.form.get("osDetection", "false").lower() == "true"
 
     cmd = f"nmap {nmap_flag} {target_ip} -p-1500"
@@ -157,7 +159,7 @@ def run_nmap():
         if host is not None:
             addr = host.find('address')
             if addr is not None:
-                result_lines.append(f"SCAN FINISHED\n\n== PORTS ==\n")
+                result_lines.append(f"SCAN FINISHED\n\n== PORTS ==\n\nPORT\tSTATE\tSERVICE")
             for port in host.findall(".//port"):
                 port_id = port.attrib['portid']
                 proto = port.attrib['protocol']
@@ -167,18 +169,19 @@ def run_nmap():
                     name = service.attrib.get('name', '')
                     product = service.attrib.get('product', '')
                     version = service.attrib.get('version', '')
-                    line = f"{port_id}/{proto} {state} {name} {product} {version}".strip()
+                    line = f"{port_id}/{proto}\t{state}\t{name} {product} {version}".strip()
                 else:
                     line = f"{port_id}/{proto} {state}"
                 result_lines.append(line)
             osmatch = host.find('.//osmatch')
             if osmatch is not None:
-                result_lines.append(f"\nOS Detection: {osmatch.attrib['name']}")
+                result_lines.append(f"\n== OS VERSION ==\nOS Detection: {osmatch.attrib['name']}")
         else:
             result_lines.append("No host information found.")
-        return "\n".join(result_lines)
+        return jsonify(parsed="\n".join(result_lines), raw_xml=xml_output)
     except Exception as e:
         return jsonify(message=f"Error parsing nmap output: {str(e)}"), 500
+
 
 
 if __name__ == "__main__":

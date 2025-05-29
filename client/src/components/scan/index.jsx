@@ -10,12 +10,13 @@ function Scan() {
     { name: "SSH", enabled: true },
     { name: "HTTP", enabled: true },
     { name: "SMTP", enabled: true },
-    { name: "FTP", enabled: false },
-    { name: "RPC", enabled: false },
-    { name: "DNS", enabled: false },
+    { name: "FTP", enabled: true },
+    { name: "RPC", enabled: true },
+    { name: "DNS", enabled: true },
   ]);
 
   const [scanResult, setScanResult] = useState("");
+  const [rawXml, setRawXml] = useState(""); // dodane: przechowuje surowy XML
   const [loading, setLoading] = useState(false);
 
   const toggleService = (index) => {
@@ -27,8 +28,8 @@ function Scan() {
   const handleScan = async () => {
     setLoading(true);
     setScanResult("");
+    setRawXml("");
     try {
-      // 1. Wysyłamy do backendu status usług do włączenia/wyłączenia (linux_machine_2)
       const servicesPayload = services.map(s => ({ name: s.name, enabled: s.enabled }));
       await fetch("/api/services", {
         method: "POST",
@@ -36,27 +37,13 @@ function Scan() {
         body: JSON.stringify({ services: servicesPayload }),
       });
 
-      // 2. Uruchamiamy snort na linux_machine_2 jeśli włączony
-      if (snortEnabled) {
-        await fetch("/api/snort", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enable: true }),
-        });
-      } else {
-        await fetch("/api/snort", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enable: false }),
-        });
-      }
+      await fetch("/api/snort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enable: snortEnabled }),
+      });
 
-      // 3. Uruchamiamy nmap scan na linux_machine_1 (adres IP stały)
-      const nmapActionMap = {
-        TCP: "nmap_scan_1",
-        Stealth: "nmap_scan_2",
-        UDP: "nmap_scan_3",
-      };
+      const nmapActionMap = { TCP: "nmap_scan_1", Stealth: "nmap_scan_2", UDP: "nmap_scan_3" };
       const nmapAction = nmapActionMap[scanType];
 
       const nmapResp = await fetch("/api/scan", {
@@ -65,14 +52,31 @@ function Scan() {
         body: new URLSearchParams({ action: nmapAction, osDetection: osDetection.toString() }),
       });
 
-      const text = await nmapResp.text();
-      setScanResult(text); // renderujemy cały zwrócony HTML albo wyświetlamy jako tekst
+      const data = await nmapResp.json();
+      if (nmapResp.ok) {
+          setScanResult(data.parsed);
+          setRawXml(data.raw_xml); // surowy XML
+      } else {
+          setScanResult(`Error: ${data.message}`);
+      }
+
 
       setLoading(false);
     } catch (e) {
       setLoading(false);
       setScanResult("Error during scan: " + e.message);
     }
+  };
+
+  const downloadXml = () => {
+    const blob = new Blob([rawXml], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "scan_result.xml";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -88,7 +92,7 @@ function Scan() {
 
         {activeTab === "services" && (
           <div className="services-section">
-            <h3>Services (linux_machine_2)</h3>
+            <h3>Services</h3>
             <div className="services-list">
               {services.map((service, idx) => (
                 <div key={idx} className={`service-item ${service.enabled ? "enabled" : "disabled"}`}>
@@ -110,7 +114,6 @@ function Scan() {
               <option value="Stealth">Stealth Scan</option>
               <option value="UDP">UDP Scan</option>
             </select>
-
             <p className="scan-help">
               <a href="https://nmap.org/book/man.html" target="_blank" rel="noopener noreferrer">
                 See the official <strong>nmap</strong> documentation
@@ -144,6 +147,11 @@ function Scan() {
         {scanResult && (
           <div className="status-message" style={{ whiteSpace: "pre-wrap", marginTop: "1rem" }}>
             {scanResult}
+            {rawXml && (
+              <div className="download-container">
+                <button className="download-button" onClick={downloadXml}>Download Raw XML</button>
+              </div>
+            )}
           </div>
         )}
       </div>

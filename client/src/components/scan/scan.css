@@ -141,7 +141,7 @@ input[type="checkbox"] {
 }
 
 /* SERVICES SECTION */
-.services-section h2 {
+.services-section h3 {
   text-align: center;
   margin-bottom: 2rem;
 }
@@ -190,4 +190,38 @@ input[type="checkbox"] {
 
 .service-item button:hover {
   background-color: #2563eb;
+}
+
+.download-button {
+  background-color: #10b981; /* zielony przycisk pobierania */
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  margin-top: 1rem; /* odległość od wyników */
+}
+
+.download-button:hover {
+  background-color: #059669; /* ciemniejszy odcień na hover */
+}
+
+.status-message {
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+  position: relative; /* przygotowanie na pozycjonowanie */
+}
+
+.status-message .download-container {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
 }
