@@ -10,10 +10,8 @@ function Scan() {
     { name: "SSH", enabled: true },
     { name: "HTTP", enabled: true },
     { name: "SMTP", enabled: true },
-    { name: "FTP", enabled: true },
-    { name: "Telnet", enabled: false },
-    { name: "HTTPS", enabled: false },
-    { name: "SMB", enabled: false },
+    { name: "FTP", enabled: false },
+    { name: "RPC", enabled: false },
     { name: "DNS", enabled: false },
   ]);
 
@@ -61,10 +59,10 @@ function Scan() {
       };
       const nmapAction = nmapActionMap[scanType];
 
-      const nmapResp = await fetch("/api/check", {
+      const nmapResp = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ action: nmapAction }),
+        body: new URLSearchParams({ action: nmapAction, osDetection: osDetection.toString() }),
       });
 
       const text = await nmapResp.text();

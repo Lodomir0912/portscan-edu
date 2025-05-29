@@ -86,10 +86,9 @@ def set_services():
         "ftp": "vsftpd",
         "http": "apache2",
         "smtp": "postfix",
-        "telnet": "inetd",
-        "https": "apache2",
+        "rpc": "rpcbind",
         "smb": "smbd",
-        "dns": "bind9"
+        "dns": "named"
         }
         for service in services:
             name = service["name"].lower()
@@ -127,7 +126,7 @@ def set_snort():
         return jsonify(message=f"Error toggling snort: {str(e)}"), 500
 
 # ---------------- NMAP ----------------
-@app.route("/api/check", methods=["POST"])
+@app.route("/api/scan", methods=["POST"])
 def run_nmap():
     action = request.form.get("action")
     if action not in ['nmap_scan_1', 'nmap_scan_2', 'nmap_scan_3']:
@@ -141,8 +140,12 @@ def run_nmap():
     nmap_flag = scan_type_map[action]
 
     target_ip = "172.19.0.2"  # IP celu skanu w kontenerze lub sieci Docker
+    os_detection = request.form.get("osDetection", "false").lower() == "true"
 
-    cmd = f"nmap {nmap_flag} {target_ip} -p-1000 -O -oX -"
+    cmd = f"nmap {nmap_flag} {target_ip} -p-1500"
+    if os_detection:
+        cmd += " -O"
+    cmd += " -oX -"
     xml_output = run_docker_command_attacker(cmd)
     if xml_output.startswith("ERROR"):
         return jsonify(message=xml_output), 500
@@ -154,7 +157,7 @@ def run_nmap():
         if host is not None:
             addr = host.find('address')
             if addr is not None:
-                result_lines.append(f"Target: {addr.attrib['addr']}")
+                result_lines.append(f"SCAN FINISHED\n\n== PORTS ==\n")
             for port in host.findall(".//port"):
                 port_id = port.attrib['portid']
                 proto = port.attrib['protocol']
@@ -170,7 +173,7 @@ def run_nmap():
                 result_lines.append(line)
             osmatch = host.find('.//osmatch')
             if osmatch is not None:
-                result_lines.append(f"OS Detection: {osmatch.attrib['name']}")
+                result_lines.append(f"\nOS Detection: {osmatch.attrib['name']}")
         else:
             result_lines.append("No host information found.")
         return "\n".join(result_lines)
