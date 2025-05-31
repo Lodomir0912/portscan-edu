@@ -14,4 +14,5 @@ class ScanFile(db.Model):
     filetype = db.Column(db.String(20), nullable=False)   # "nmap" lub "snort"
     hashtag = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
+    filedata = db.Column(db.Text, nullable=False)  
     user = db.relationship('User', backref=db.backref('scanfiles', lazy=True))

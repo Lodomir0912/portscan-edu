@@ -14,6 +14,7 @@ import Nmap from './components/nmap/';
 import './components/nmap/nmap.css';
 import Snort from './components/snort/';
 import './components/snort/snort.css';
+import Account from './components/account';
 
 function App() {
 
@@ -27,6 +28,7 @@ function App() {
         <Route path='/scan' element={<Scan />} />
         <Route path="/nmap" element={<Nmap />} />
         <Route path="/snort" element={<Snort />} />
+        {/* <Route path="/account" element={<Account />} /> */}
       </Routes>
     </Router>
   );
