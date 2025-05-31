@@ -7,6 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 from models import db, User, ScanFile
+from flask import send_file, abort, make_response
+import io
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -115,6 +117,19 @@ def set_services():
 def set_snort():
     data = request.get_json()
     enable = data.get("enable", False)
+
+    # # zapisanie pliku konfiguracyjnego snorta
+    # user_id = get_jwt_identity()
+    # filename = f"nmap_{int(time.time())}.xml"
+    # scanfile = ScanFile(
+    #     user_id=user_id,
+    #     filename=filename,
+    #     filetype="nmap",
+    #     hashtag="#nmapscan",
+    #     filedata=data.encode("utf-8")  # zamiana na bajty
+    # )
+    # db.session.add(scanfile)
+    # db.session.commit()
     try:
         if enable:
             cmd = "nohup snort -i eth0 -c /etc/snort/snort.conf > /tmp/snort.log 2>&1 &"
@@ -149,6 +164,19 @@ def run_nmap():
         cmd += " -O"
     cmd += " -oX -"
     xml_output = run_docker_command_attacker(cmd)
+
+    # # zapisanie pliku konfiguracyjnego nmapa
+    # user_id = get_jwt_identity()
+    # filename = f"nmap_{int(time.time())}.xml"
+    # scanfile = ScanFile(
+    #     user_id=user_id,
+    #     filename=filename,
+    #     filetype="nmap",
+    #     hashtag="#nmapscan",
+    #     filedata=xml_output.encode("utf-8")  # zamiana na bajty
+    # )
+    # db.session.add(scanfile)
+    # db.session.commit()
     if xml_output.startswith("ERROR"):
         return jsonify(message=xml_output), 500
 
@@ -182,7 +210,47 @@ def run_nmap():
     except Exception as e:
         return jsonify(message=f"Error parsing nmap output: {str(e)}"), 500
 
+# @app.route('/api/user/scans', methods=['GET'])
+# @jwt_required()
+# def get_user_scans():
+#     user_id = get_jwt_identity()
+#     scans = ScanFile.query.filter_by(user_id=user_id).order_by(ScanFile.created_at.desc()).all()
+#     return jsonify({
+#         "scans": [
+#             {
+#                 "id": scan.id,
+#                 "filename": scan.filename,
+#                 "filetype": scan.filetype,
+#                 "hashtag": scan.hashtag,
+#                 "created_at": scan.created_at.strftime("%Y-%m-%d %H:%M:%S") if scan.created_at else ""
+#             }
+#             for scan in scans
+#         ]
+#     })
 
+# @app.route('/api/user', methods=['GET'])
+# @jwt_required()
+# def get_user_info(): 
+#     user_id = get_jwt_identity()
+#     user = User.query.filter_by(id=user_id).first()
+#     return jsonify({
+#         "username": user.username,
+#         "password": user.password,
+#     })
+
+# @app.route('/api/download/<int:scanfile_id>', methods=['GET'])
+# @jwt_required()
+# def download_scanfile(scanfile_id):
+#     user_id = get_jwt_identity()
+#     scanfile = ScanFile.query.filter_by(id=scanfile_id, user_id=user_id).first()
+#     if not scanfile:
+#         return abort(404)
+#     return send_file(
+#         io.BytesIO(scanfile.filedata),
+#         as_attachment=True,
+#         download_name=scanfile.filename,
+#         mimetype="application/octet-stream"
+#     )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
