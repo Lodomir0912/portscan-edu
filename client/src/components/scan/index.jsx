@@ -198,7 +198,7 @@ function Scan() {
             {scanResult}
             {rawXml && (
               <div className="download-container">
-                <button className="download-button" onClick={downloadXml}>Download Raw XML</button>
+                <button className="download-button1" onClick={downloadXml}>Download Raw XML</button>
                 <button className="save-button" onClick={saveScan}>Save Scan</button>
               </div>
             )}

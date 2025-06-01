@@ -111,20 +111,6 @@ input[type="checkbox"] {
   margin-bottom: 1rem;
 }
 
-.download-button {
-  background-color: #10b981;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.25rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-
-.download-button:hover {
-  background-color: #059669;
-}
-
 .scan-help {
   font-size: 0.9rem;
   color: #cbd5e1;
@@ -193,18 +179,19 @@ input[type="checkbox"] {
   background-color: #2563eb;
 }
 
-.download-button {
+.download-button1 {
   background-color: #10b981; /* zielony przycisk pobierania */
   color: white;
   border: none;
   padding: 0.5rem 1.25rem;
-  border-radius: 0.5rem;
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
   cursor: pointer;
   font-size: 0.95rem;
   margin-top: 1rem; /* odległość od wyników */
 }
 
-.download-button:hover {
+.download-button1:hover {
   background-color: #059669; /* ciemniejszy odcień na hover */
 }
 
@@ -225,4 +212,20 @@ input[type="checkbox"] {
   margin-top: 1rem;
   display: flex;
   justify-content: center;
+}
+
+.save-button {
+  background-color: #a8a8a7; 
+  color: black;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  margin-top: 1rem; /* odległość od wyników */
+}
+
+.save-button:hover {
+  background-color: #656666; /* ciemniejszy odcień na hover */
 }
