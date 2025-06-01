@@ -4,6 +4,7 @@
   color: white;
   padding: 40px 20px;
   text-align: center;
+  overflow-y: auto;
 }
 
 .snort-logo {

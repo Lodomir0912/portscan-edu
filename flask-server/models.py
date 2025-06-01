@@ -11,8 +11,8 @@ class ScanFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     filename = db.Column(db.String(200), nullable=False)
-    filetype = db.Column(db.String(20), nullable=False)   # "nmap" lub "snort"
+    filetype = db.Column(db.String(20), nullable=False)   # nmap lub snort
     hashtag = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
-    filedata = db.Column(db.Text, nullable=False)  
+    filedata = db.Column(db.Text, nullable=False)
     user = db.relationship('User', backref=db.backref('scanfiles', lazy=True))
