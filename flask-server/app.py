@@ -81,12 +81,27 @@ def set_services():
 def set_snort():
     data = request.get_json()
     enable = data.get("enable", False)
-    cmd = ("nohup snort -i eth0 -c /etc/snort/snort.conf > /tmp/snort.log 2>&1 &"
-           if enable else "pkill snort || true")
+
+    if enable:
+        # Wyczyść stare reguły iptables
+        run_docker_command(DEFENDER_NAME, "iptables -F")
+        # Dodaj regułę przekierowującą do NFQUEUE
+        run_docker_command(DEFENDER_NAME, "iptables -A INPUT -j NFQUEUE --queue-num 0")
+
+        # Uruchom skrypt startowy Snorta IPS w tle i przekieruj logi
+        cmd = "nohup /start-snort-ips.sh > /tmp/snort.log 2>&1 &"
+    else:
+        # Zatrzymaj Snorta i wyczyść reguły iptables
+        run_docker_command(DEFENDER_NAME, "pkill snort || true")
+        run_docker_command(DEFENDER_NAME, "iptables -F")
+        cmd = "echo 'Snort stopped'"
+
     out = run_docker_command(DEFENDER_NAME, cmd)
     if out.startswith("ERROR"):
         return jsonify(message=out), 500
-    return jsonify(message=f"Snort {'started' if enable else 'stopped'}"), 200
+    return jsonify(message=f"Snort {'started with IPS script' if enable else 'stopped'}"), 200
+
+
 
 @app.route("/api/scan", methods=["POST"])
 def run_nmap():
