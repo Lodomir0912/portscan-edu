@@ -127,7 +127,6 @@ input[type="checkbox"] {
   color: #bfdbfe;
 }
 
-/* SERVICES SECTION */
 .services-section h3 {
   text-align: center;
   margin-bottom: 2rem;
@@ -180,7 +179,7 @@ input[type="checkbox"] {
 }
 
 .download-button1 {
-  background-color: #10b981; /* zielony przycisk pobierania */
+  background-color: #10b981;
   color: white;
   border: none;
   padding: 0.5rem 1.25rem;
@@ -188,11 +187,11 @@ input[type="checkbox"] {
   border-bottom-left-radius: 0.5rem;
   cursor: pointer;
   font-size: 0.95rem;
-  margin-top: 1rem; /* odległość od wyników */
+  margin-top: 1rem;
 }
 
 .download-button1:hover {
-  background-color: #059669; /* ciemniejszy odcień na hover */
+  background-color: #059669;
 }
 
 .status-message {
@@ -205,7 +204,7 @@ input[type="checkbox"] {
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 1rem;
-  position: relative; /* przygotowanie na pozycjonowanie */
+  position: relative;
 }
 
 .status-message .download-container {
@@ -223,9 +222,30 @@ input[type="checkbox"] {
   border-bottom-right-radius: 0.5rem;
   cursor: pointer;
   font-size: 0.95rem;
-  margin-top: 1rem; /* odległość od wyników */
+  margin-top: 1rem;
 }
 
 .save-button:hover {
-  background-color: #656666; /* ciemniejszy odcień na hover */
+  background-color: #656666;
+}
+
+.snort-alerts {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.snort-alerts pre {
+  margin: 0;
+  font-family: monospace;
+  color: #cf1322;
+}
+
+.snort-alerts h4 {
+  margin-top: 0;
+  color: #cf1322;
 }

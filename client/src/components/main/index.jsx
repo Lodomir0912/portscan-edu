@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './main.css';
-import illustration from '../../images/cyber-security.png'; // zamień na swoją ilustrację
+import illustration from '../../images/cyber-security.png';
 
 function Main() {
   const navigate = useNavigate();
 
-  const handleStartScan = () => {
+  const handleStartScan = () => { // przekierowanie do strony skanowania, jeśli użytkownik jest zalogowany
     const token = localStorage.getItem('access_token');
     if (token) {
       navigate('/scan');

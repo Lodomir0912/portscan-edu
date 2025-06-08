@@ -7,9 +7,9 @@ function Account() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchScans = async () => {
+    const fetchScans = async () => {  // pobranie informacje o skanach użytkownika
       try {
-        const token = localStorage.getItem("access_token"); // Pobranie tokenu JWT
+        const token = localStorage.getItem("access_token");
         if (!token) {
           setError("Not authenticated. Please log in.");
           setLoading(false);
@@ -38,7 +38,7 @@ function Account() {
     fetchScans();
   }, []);
 
-  const handleDownload = async (id, filename) => {
+  const handleDownload = async (id, filename) => { // pobranie skanów użytkownika
     try {
       const token = localStorage.getItem("access_token");
       const response = await fetch(`/api/download/${id}`, {

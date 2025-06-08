@@ -9,7 +9,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  async function handleLogin(e) {
+  async function handleLogin(e) { // obsługa logowania, pobranie danych z api
     e.preventDefault();
     try {
       const response = await axios.post("api/login", {
@@ -17,7 +17,7 @@ function Login() {
         password,
       });
       localStorage.setItem("access_token", response.data.access_token);
-      navigate("/scan");  // Przekierowanie po zalogowaniu
+      navigate("/scan");
     } catch (error) {
       Swal.fire({
         icon: "error",

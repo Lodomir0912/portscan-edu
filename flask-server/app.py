@@ -7,6 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 from models import db, User, ScanFile
+import re
+import socket
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -19,7 +21,7 @@ jwt = JWTManager(app)
 ATTACKER_NAME = "linux_machine_1"
 DEFENDER_NAME = "linux_machine_2"
 
-def run_docker_command(container_name, command, timeout=60):
+def run_docker_command(container_name, command, timeout=60):    # uruchomienie komendy na maszynie
     try:
         cmd = ["docker", "exec", "--privileged", container_name, "bash", "-c", command]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -27,7 +29,14 @@ def run_docker_command(container_name, command, timeout=60):
     except subprocess.TimeoutExpired:
         return "ERROR: Command timed out"
 
-@app.route('/api/login', methods=['POST'])
+def get_ip(container_name, interface="eth0"):   # pobranie ip maszyny
+    output = run_docker_command(container_name, f"ifconfig {interface}")
+    match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
+    if match:
+        return match.group(1)
+    return None
+    
+@app.route('/api/login', methods=['POST'])  # endpoint zarządzający konfiguracją logina
 def login():
     data = request.get_json()
     email = data.get('email')
@@ -38,7 +47,7 @@ def login():
         return jsonify(access_token=token), 200
     return jsonify(message='Invalid credentials'), 401
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST']) # endpoint zarządzający konfiguracją rejestracji
 def register():
     data = request.get_json()
     email = data.get('email')
@@ -52,7 +61,7 @@ def register():
     db.session.commit()
     return jsonify(message='User registered successfully'), 201
 
-@app.route("/api/services", methods=["POST"])
+@app.route("/api/services", methods=["POST"])   # endpoint zarządzający konfiguracją serwisów
 def set_services():
     data = request.get_json()
     services = data.get("services", [])
@@ -77,42 +86,131 @@ def set_services():
             return jsonify(message=f"Error updating service {service_name}: {out}"), 500
     return jsonify(message="Services updated"), 200
 
-@app.route("/api/snort", methods=["POST"])
+@app.route("/api/snort", methods=["POST"])  # endpoint zarządzający konfiguracją snorta
 def set_snort():
     data = request.get_json()
     enable = data.get("enable", False)
+    mode = data.get("mode", "IDS")
+    interface = data.get("interface", "eth0")
+    verbosity = data.get("verbosity", "normal")
 
     if enable:
-        # Wyczyść stare reguły iptables
-        run_docker_command(DEFENDER_NAME, "iptables -F")
-        # Dodaj regułę przekierowującą do NFQUEUE
-        run_docker_command(DEFENDER_NAME, "iptables -A INPUT -j NFQUEUE --queue-num 0")
-
-        # Uruchom skrypt startowy Snorta IPS w tle i przekieruj logi
-        cmd = "nohup /start-snort-ips.sh > /tmp/snort.log 2>&1 &"
-    else:
-        # Zatrzymaj Snorta i wyczyść reguły iptables
         run_docker_command(DEFENDER_NAME, "pkill snort || true")
         run_docker_command(DEFENDER_NAME, "iptables -F")
-        cmd = "echo 'Snort stopped'"
 
-    out = run_docker_command(DEFENDER_NAME, cmd)
-    if out.startswith("ERROR"):
-        return jsonify(message=out), 500
-    return jsonify(message=f"Snort {'started with IPS script' if enable else 'stopped'}"), 200
+        if mode.upper() == "IPS":
+            run_docker_command(DEFENDER_NAME, "iptables -A INPUT -j NFQUEUE --queue-num 0")
+            snort_cmd = f"snort -Q --daq nfq --daq-var queue=0 -c /etc/snort/snort.lua -i {interface}"
+        else:
+            run_docker_command(DEFENDER_NAME, "ip link set eth0 promisc on")
+            snort_cmd = f"snort -i {interface} -c /etc/snort/snort.lua -A fast"
+
+        if verbosity == "verbose":
+            snort_cmd += " -v"
+
+        cmd = f"nohup {snort_cmd} > /dev/null 2>&1 &"
+        out = run_docker_command(DEFENDER_NAME, cmd)
+        if out.startswith("ERROR"):
+            return jsonify(message=out), 500
+        return jsonify(message=f"Snort started in {mode} mode"), 200
+
+    else:
+        run_docker_command(DEFENDER_NAME, "pkill snort || true")
+        run_docker_command(DEFENDER_NAME, "iptables -F")
+        run_docker_command(DEFENDER_NAME, "ip link set eth0 promisc off")
+        return jsonify(message="Snort stopped and iptables rules cleared"), 200
+
+@app.route("/api/snort/logs", methods=["GET"])  # endpoint zarządzający konfiguracją logów ze snorta
+def get_snort_logs():
+    try:
+        mode = request.args.get('mode', 'IPS').upper()
+        verbosity = request.args.get('verbosity', 'normal').lower()
+
+        logs = run_docker_command(DEFENDER_NAME, "cat /alert_fast.txt")
+        if logs.startswith("ERROR") or not logs.strip():
+            return jsonify(message="No logs available"), 404
+
+        detected_scan_types = set()
+        ports = set()
+        source_ip = None
+
+        for line in logs.strip().split('\n'):
+            if "TCP Port Scan Detected" in line:
+                detected_scan_types.add("TCP")
+            if "Stealth Scan Detected" in line:
+                detected_scan_types.add("Stealth")
+            if "UDP Port Scan Detected" in line:
+                detected_scan_types.add("UDP")
+            if "NULL Scan Detected" in line:
+                detected_scan_types.add("NULL")
+            if "FIN Scan Detected" in line:
+                detected_scan_types.add("FIN")
+            if "XMAS Scan Detected" in line:
+                detected_scan_types.add("XMAS")
+
+            if not source_ip:
+                match = re.search(r'{.*}\s+(\d+\.\d+\.\d+\.\d+):\d+\s+->', line)
+                if match:
+                    source_ip = match.group(1)
+
+            match_port = re.search(r'->\s+\d+\.\d+\.\d+\.\d+:(\d+)', line)
+            if match_port:
+                ports.add(int(match_port.group(1)))
+
+        if not detected_scan_types or not source_ip:
+            return jsonify(message="No scan detected in logs"), 404
+
+        priorities = ["XMAS", "FIN", "NULL", "Stealth", "UDP", "TCP"]
+
+        scan_type = "Unknown"
+        for scan in priorities:
+            if scan in detected_scan_types:
+                scan_type = scan
+                break
 
 
+        if mode == "IPS":
+            if verbosity == "normal":
+                message = f"====== SNORT ALERT ======\n\nPort Scan Blocked!\n\n----------------------------\n\n"
+            else:
+                message = f"====== SNORT ALERT ======\n\nPort Scan Blocked!\n\nSource IP: {source_ip}\n\n----------------------------\n\n"
+        elif mode == "IDS":
+            if verbosity == "normal":
+                message = f"====== SNORT ALERT ======\n\nPort Scan Detected!\n\nSource IP: {source_ip}\n\n----------------------------\n\n"
+            else:
+                message = f"====== SNORT ALERT ======\n\nPort Scan Detected!\n\nSource IP: {source_ip}\nScan type: {scan_type}\nTime: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n----------------------------\n\n"
+        else:
+            message = "Invalid mode"
 
-@app.route("/api/scan", methods=["POST"])
+        return jsonify(
+            message=message,
+            alert_class=mode.lower(),
+            scan_type=scan_type,
+            source_ip=source_ip,
+            raw_logs=logs if verbosity == "verbose" else None,
+            timestamp=time.strftime('%Y-%m-%d %H:%M:%S')
+        ), 200
+
+    except Exception as e:
+        return jsonify(message=f"Error retrieving logs: {str(e)}"), 500
+
+@app.route("/api/scan", methods=["POST"])   # endpoint zarządzający konfiguracją nmapa
 def run_nmap():
     action = request.form.get("action")
-    scan_type_map = {'nmap_scan_1': '-sT', 'nmap_scan_2': '-sS', 'nmap_scan_3': '-sU'}
+    scan_type_map = {
+        'nmap_scan_1': '-sT', 
+        'nmap_scan_2': '-sS', 
+        'nmap_scan_3': '-sU', 
+        'nmap_scan_4': '-sN', 
+        'nmap_scan_5': '-sF', 
+        'nmap_scan_6': '-sX'
+    }
     nmap_flag = scan_type_map.get(action)
     if not nmap_flag:
         return jsonify(message="Invalid scan action"), 400
-    target_ip = "172.19.0.2"
+    target_ip = get_ip(DEFENDER_NAME)
     os_detection = request.form.get("osDetection", "false").lower() == "true"
-    cmd = f"nmap {nmap_flag} {target_ip} -p-1500{' -O' if os_detection else ''} -oX -"
+    cmd = f"nmap {nmap_flag} {target_ip} -p-200{' -O' if os_detection else ''} -oX -"
     xml_output = run_docker_command(ATTACKER_NAME, cmd)
     if xml_output.startswith("ERROR"):
         return jsonify(message=xml_output), 500
@@ -139,7 +237,7 @@ def run_nmap():
     except Exception as e:
         return jsonify(message=f"Error parsing nmap output: {str(e)}"), 500
 
-@app.route('/api/user/scans', methods=['GET'])
+@app.route('/api/user/scans', methods=['GET'])  # endpoint zarządzający konfiguracją skanów użytkownika
 @jwt_required()
 def get_user_scans():
     user_id = get_jwt_identity()
@@ -153,7 +251,7 @@ def get_user_scans():
     } for scan in scans]
     return jsonify(scans=scan_list), 200
 
-@app.route('/api/download/<int:scan_id>', methods=['GET'])
+@app.route('/api/download/<int:scan_id>', methods=['GET'])  # endpoint zarządzający pobraniem skanu
 @jwt_required()
 def download_scan(scan_id):
     user_id = get_jwt_identity()
@@ -166,7 +264,7 @@ def download_scan(scan_id):
     response.headers["Content-Disposition"] = f"attachment; filename={scan.filename}"
     return response
 
-@app.route('/api/save_scan', methods=['POST'])
+@app.route('/api/save_scan', methods=['POST'])  # endpoint zarządzający zapisaniem skanu
 @jwt_required()
 def save_scan():
     user_id = get_jwt_identity()
@@ -189,5 +287,5 @@ def save_scan():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()  # tworzy tabele jeśli ich nie ma
+        db.create_all()
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -9,7 +9,7 @@ function Register() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  async function handleRegister(e) {
+  async function handleRegister(e) {  // wysłanie danych do api w celu utworzenia konta
     e.preventDefault()
     try {
       const requestBody = { email, password };

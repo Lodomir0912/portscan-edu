@@ -20,7 +20,9 @@ const NavBar = () => {
         </div>
         <ul className="nav-links">
           <li><Link to="/">Main Page</Link></li>
-          <li><Link to="/scan">Scan</Link></li>
+          {token ? (
+            <li><Link to="/scan">Scan</Link></li>
+          ) : null}
           {token ? (
             <>
               <li><Link to="/account">Account</Link></li>
